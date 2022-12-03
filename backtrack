@@ -157,8 +157,7 @@ def main_program(filename,input_filename) :
         depth = 0
         currentGoal = ultimateGoal
 
-        ruleFinder(depth, currentGoal, filename, input_filename, "")
-
+        ruleFinder(depth, currentGoal, filename, input_filename, [currentGoal], [])
 
         for log in logs :
             print(log,file=fw)
@@ -188,7 +187,7 @@ def main_program(filename,input_filename) :
 
 
 
-def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
+def ruleFinder(depth,currentGoal, filename, input_filename, callingRule,oldPath) :
 
     global initialFacts
     global ultimateGoal
@@ -202,7 +201,6 @@ def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
     global presentlyInferredCrew
     global goalFailedOneArg
     global backFlag
-
 
 
 
@@ -225,6 +223,7 @@ def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
 
 
         else : #the current goal is a previous goal and a fact
+
             logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Fact (earlier inferred). Facts " + factsRuleString(facts) + ". Back, OK.")
             compter += 1
     else :
@@ -261,8 +260,11 @@ def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
                     logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". No rules. Back, FAIL.")
                     compter += 1
 
-                    if path != [] :
-                        path.pop()
+                    path = copy.copy(oldPath)
+                    """if path != [] :
+                        path.pop()"""
+
+
                     if facts != [] :
                         if facts[-1] not in initialFacts :
                             facts.pop()
@@ -286,6 +288,7 @@ def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
 
                             logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Find R" + str(indexRule) + ":" + ruleMachineToHuman(rule) + ". New goals " + factsRuleString(factsRule(rule)) + ".")
                             compter += 1
+                            oldPath = copy.copy(path)
 
                             if currentGoal not in previousGoals :
                                 previousGoals.append(currentGoal)
@@ -293,7 +296,7 @@ def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
                             factInLists = factsRuleList(rule)
                             for fact in factInLists :
                                 if not backFlag :
-                                    ruleFinder(depth + 1, fact, filename, input_filename, rule)
+                                    ruleFinder(depth + 1, fact, filename, input_filename, rule, oldPath)
                             backFlag = False
 
 
@@ -308,9 +311,15 @@ def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
                             if flag :#For a given rule, if all facts can be achieved, then the local goal can be achieved.
                                 facts.append(currentGoal)
                                 path.append("R" + str(indexRule))
-                                logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Fact (presently inferred). Facts " + factsRuleString(facts) + ".")
+                                if currentGoal == callingRule[-1] :
+                                    logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Fact (presently inferred). Facts " + factsRuleString(facts) + ". Back, OK.")
+                                else :
+                                    logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Fact (presently inferred). Facts " + factsRuleString(facts) + ".")
+
                                 presentlyInferredCrew.append(currentGoal)
                                 compter += 1
+
+
 
 
 
@@ -331,7 +340,7 @@ def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
 
 #If one argument of a rule can't be achieved, then the other argument of that rule shouldn't be considered as goals.
 
-
+# Back.OK. --> if the argument of a rule that is checked is the last one.
 
 
 
