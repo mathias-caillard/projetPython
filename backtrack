@@ -203,6 +203,9 @@ def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
     global goalFailedOneArg
     global backFlag
 
+
+
+
     cantBeAchieved = [] #cantBeAchied[i] == [rule, index] that can't be achieved because one of the argument cant be achieved
 
 
