@@ -1,0 +1,429 @@
+#backward chaining
+import copy
+
+
+"""
+To do lists :
+- two types of presently inferred : the one where we go back, the other where where we don't. Implement the case there we go back.
+- if goal is in initial facts
+- tests
+"""
+
+ultimateGoal = ""
+facts = []
+rules = []
+initialFacts = []
+canBeAchievedList = []
+path = []
+logs = []
+previousGoals = []
+compter = 1
+presentlyInferredCrew = []
+backFlag = False
+
+
+
+def reinit() :
+
+    global ultimateGoal
+    global facts
+    global rules
+    global initialFacts
+    global canBeAchievedList
+    global path
+    global logs
+    global previousGoals
+    global compter
+    global presentlyInferredCrew
+    global backFlag
+
+    ultimateGoal = ""
+    facts = []
+    rules = []
+    initialFacts = []
+    canBeAchievedList = []
+    path = []
+    logs = []
+    previousGoals = []
+    compter = 1
+    presentlyInferredCrew = []
+    backFlag = False
+
+
+def main_program(filename,input_filename) :
+
+    global ultimateGoal
+    global facts
+    global rules
+    global initialFacts
+    global canBeAchievedList
+    global path
+    global logs
+    global previousGoals
+    global compter
+    global backFlag
+
+    reinit()
+
+
+    with open("D:/Vilnius_2A/IA/backward_chain/" + filename,'a') as fw:
+        with open("D:/Vilnius_2A/IA/backward_chain/" + input_filename + ".txt") as f:
+            lines = f.readlines()
+            pointer = 3
+
+            humanLines = []
+            machineLines = []
+            facts = []
+            goal = []
+
+            #rules (humans)
+            humanLine = lines[pointer]
+            while humanLine != "\n" :
+                humanLines.append(humanLine)
+                pointer += 1
+                humanLine = lines[pointer]
+
+            #rules (machine)
+            for humanLine in humanLines :
+                pointer2 = 0
+                while humanLine[pointer2] != "/" :
+                    pointer2 += 1
+
+                machineLine = humanLine[:pointer2]
+                machineLines.append(machineLine.replace(" ",""))
+
+
+
+            #facts
+            pointer += 2
+            factsLine = lines[pointer]
+            for fact in factsLine :
+                if fact != " " and fact != "\n":
+                    facts.append(fact)
+            initialFacts = copy.copy(facts)
+            canBeAchievedList = copy.copy(initialFacts)
+
+
+            #goal
+            pointer += 3
+            pointerGoal = 0
+            tmpGoal = lines[pointer][0]
+            goal = [tmpGoal]
+
+
+
+        #Part 1. Data
+        # 1.1) Rules
+        print("PART 1. Data\n", file=fw)
+        print("1) Rules", file=fw)
+        compter_rules = 0
+        for rule in machineLines :
+            compter_rules += 1
+            localGoal = rule[0]
+            localFacts = ""
+            factPointer = 1
+            while factPointer < len(rule) :
+                localFacts = localFacts + rule[factPointer]
+                if factPointer != len(rule)-1 :
+                    localFacts = localFacts + ","
+                factPointer += 1
+
+            print("R" + str(compter_rules) + ": " + str(localFacts) + " -> " + localGoal, file=fw)
+
+        #1.2) Facts
+
+        factsString = ""
+        factPointer = 0
+        while factPointer < len(facts) :
+            factsString = factsString + facts[factPointer]
+            if factPointer != len(facts) - 1:
+                factsString = factsString + ", "
+            factPointer += 1
+        print("2)  Facts " + factsString, file=fw)
+
+        #1.3) Goal
+        print("3) Goal " + goal[0] + "\n", file=fw)
+        print("PART 2. Trace\n", file=fw)
+
+        #PART 2. Trace
+
+        """ For one goal, we are looking for rules for which the goal of the rule is the goal considered. For each of those rules, we consider the ingredients. Each ingredients become new goals
+
+        ressource : utlimateGoal, facts, rules"""
+
+
+        ultimateGoal = goal[0]
+        rules = machineLines
+        depth = 0
+        currentGoal = ultimateGoal
+
+        ruleFinder(depth, currentGoal, filename, input_filename, "")
+
+
+        for log in logs :
+            print(log,file=fw)
+
+        if ultimateGoal in facts :
+            result = True
+        else :
+            result = False
+
+
+
+        #PART 3. Results
+        print("\nPART 3. Results\n", file=fw)
+
+        if ultimateGoal in initialFacts :
+            print("Goal " + ultimateGoal + " among facts. Empty path.", file=fw)
+
+        else : #ultimate goal is not in initial facts
+
+            if result : #success : path found
+                print("1) Goal " + ultimateGoal + " achieved.", file=fw)
+                print("2) Path : " + pathToString(path), file=fw)
+            else  : #fail : path not found
+                print("1) Goal " + ultimateGoal + " not achieved.", file=fw)
+                print("2) Path : no path", file=fw)
+
+
+
+
+def ruleFinder(depth,currentGoal, filename, input_filename, callingRule) :
+
+    global initialFacts
+    global ultimateGoal
+    global facts
+    global rules
+    global canBeAchievedList
+    global path
+    global logs
+    global previousGoals
+    global compter
+    global presentlyInferredCrew
+    global goalFailedOneArg
+    global backFlag
+
+    cantBeAchieved = [] #cantBeAchied[i] == [rule, index] that can't be achieved because one of the argument cant be achieved
+
+
+
+
+    # If the current goal is a previous goal and the previous goal is not achieved yet, then was are in a cycle loop
+
+    if (currentGoal in previousGoals) :
+        previousGoal = currentGoal
+        if previousGoal not in facts :
+            logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Cycle. Back, FAIL.")
+            compter += 1
+            backFlag = True
+
+
+
+
+
+        else : #the current goal is a previous goal and a fact
+            logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Fact (earlier inferred). Facts " + factsRuleString(facts) + ". Back, OK.")
+            compter += 1
+    else :
+        if True :
+
+            #Checking if the current goal is in initial facts
+            if currentGoal in initialFacts :
+
+                logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Fact (initial), as facts are " + factsRuleString(facts) + ". Back, OK.")
+                compter += 1
+
+                #We add the current goal into the previous goals list
+                if currentGoal not in previousGoals :
+                    previousGoals.append(currentGoal)
+
+
+
+            else : #Current goal is not in initialfacts
+                rulesCurrentGoal = []
+                """ rulesCurrentGoal : a list that contains all the rules that have currentGoal as a goal, with the number of rules associated. rulesCurrentGoal is a list of lists of two elements.  rulesCurrentGoal[i][0] : rule. rulesCurrentGoal[i][1] : index of the rule"""
+
+                # creating rulesCurrentGoal
+                indexRules = 0
+                while indexRules < len(rules) :
+                    rule = rules[indexRules]
+                    if rule[0] == currentGoal :
+                        rulesCurrentGoal.append([rule,indexRules + 1])
+                    indexRules += 1
+
+
+
+                #There is no rule
+                if rulesCurrentGoal == [] :
+                    logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". No rules. Back, FAIL.")
+                    compter += 1
+
+                    if path != [] :
+                        path.pop()
+                    if facts != [] :
+                        if facts[-1] not in initialFacts :
+                            facts.pop()
+
+                    previousGoals = []
+
+                    if callingRule in rules :
+                        rules.remove(callingRule)
+
+
+                else :
+                #Rules that have the current goal as a local goal been found
+
+                    #I explore recursively all the rules
+                    for coupleRule in rulesCurrentGoal :
+                        rule = coupleRule[0]
+                        indexRule = coupleRule[1]
+
+                        if (not blocked(currentGoal)) and (not blockedCantBeAchied(rule, cantBeAchieved)):
+                             #If the currentGoal was presently inferred at the previous iteration, then the currentGoal sohuld be considered as a goal for the next iteration.
+
+                            logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Find R" + str(indexRule) + ":" + ruleMachineToHuman(rule) + ". New goals " + factsRuleString(factsRule(rule)) + ".")
+                            compter += 1
+
+                            if currentGoal not in previousGoals :
+                                previousGoals.append(currentGoal)
+
+                            factInLists = factsRuleList(rule)
+                            for fact in factInLists :
+                                if not backFlag :
+                                    ruleFinder(depth + 1, fact, filename, input_filename, rule)
+                            backFlag = False
+
+
+
+
+
+
+                            flag = True
+                            for fact in factInLists :
+                                if fact not in facts :
+                                    flag = False
+                            if flag :#For a given rule, if all facts can be achieved, then the local goal can be achieved.
+                                facts.append(currentGoal)
+                                path.append("R" + str(indexRule))
+                                logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". Fact (presently inferred). Facts " + factsRuleString(facts) + ".")
+                                presentlyInferredCrew.append(currentGoal)
+                                compter += 1
+
+
+
+                                if currentGoal not in previousGoals :
+                                    previousGoals.append(currentGoal)
+
+
+
+                            else : #for a given rule, at least one fact can't be achieved.
+                                cantBeAchieved.append([rule,indexRule])
+
+                    if cantBeAchieved == rulesCurrentGoal : #All rules can't be achieved
+                        logs.append(str(compter) + ") " + "-"*depth + "Goal " + currentGoal + ". No more rules. Back, FAIL.")
+                        compter += 1
+
+
+
+
+#If one argument of a rule can't be achieved, then the other argument of that rule shouldn't be considered as goals.
+
+
+
+
+
+
+
+
+
+
+def pathToString(path):
+    return factsRuleString(path)
+
+def ruleMachineToHuman(ruleMachine) :
+    localGoal = ruleMachine[0]
+    localFacts = ""
+    factPointer = 1
+
+    while factPointer < len(ruleMachine) :
+        localFacts = localFacts + ruleMachine[factPointer]
+
+        if factPointer != len(ruleMachine)-1 :
+            localFacts = localFacts + ","
+        factPointer += 1
+
+    ruleHuman = str(localFacts) + " -> " + localGoal
+    return(ruleHuman)
+
+
+def factsRule(rule) :
+    facts = []
+    factPointer = 1
+    while factPointer < len(rule) :
+        fact = rule[factPointer]
+        facts.append(fact)
+        factPointer += 1
+    return facts
+
+def factsRuleString(factsLists) :
+    factsString = ""
+    indexFacts = 0
+    while indexFacts < len(factsLists) :
+        factsString = factsString + factsLists[indexFacts]
+        if indexFacts != len(factsLists) - 1 :
+            factsString += ", "
+        indexFacts += 1
+
+    return factsString
+
+
+def factsRuleList(rule) :
+    L = []
+    indexRule = 1
+    while indexRule < len(rule) :
+        L.append(rule[indexRule])
+        indexRule += 1
+    return L
+
+
+
+
+def tests() :
+    main_program("test1", "input_file1")
+    main_program("test2", "input_file2")
+    main_program("test3", "input_file3")
+    main_program("test4", "input_file4")
+    main_program("test5", "input_file5")
+    main_program("test6", "input_file6")
+    main_program("test7", "input_file7")
+    main_program("test8", "input_file8")
+    main_program("test9", "input_file9")
+    main_program("test10", "input_file10")
+    main_program("test11", "input_file11")
+
+def blocked(currentGoal_) :
+
+    global presentlyInferredCrew
+
+    if currentGoal_ in presentlyInferredCrew :
+        return True
+    else:
+        return False
+
+
+def blockedCantBeAchied(rule_, cantBeAchieved_) :
+    for couple in cantBeAchieved_ :
+        rule = couple[0]
+        if rule == rule_ :
+            return True
+        else :
+            return False
+
+
+
+
+
+
+
+
+
